@@ -1,0 +1,43 @@
+{% extends "bootstrap/base.html" %}
+
+{% import "bootstrap/wtf.html" as wtf %}
+{% import "bootstrap/fixes.html" as fixes %}
+{% import "bootstrap/utils.html" as util %}
+
+{% block title %}Fragments of MAPT{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>Fragments of MAPT ({{ rows|length }})</h1>
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>Namespace</th>
+                <th>Name</th>
+                <th>Variant</th>
+                <th>References</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for ns, name, variant, references in rows %}
+                <tr>
+                    <td>{{ ns }}</td>
+                    <td>{{ name }}</td>
+                    <td>{{ variant }}</td>
+                    <td>
+                        {% for ref_type, ref in references %}
+                            {% if ref_type == 'PubMed' %}
+                                <a href="https://www.ncbi.nlm.nih.gov/pubmed/{{ ref }}">pmid:{{ ref }}</a>
+                            {% elif ref_type == 'PubMed Central' %}
+                                <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/{{ ref }}">pmc:{{ ref }}</a>
+                            {% else %}
+                                {{ ref_type }}:{{ ref }}
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "bootstrap/base.html" %}
+
+{% import "bootstrap/wtf.html" as wtf %}
+{% import "bootstrap/fixes.html" as fixes %}
+{% import "bootstrap/utils.html" as util %}
+
+{% block title %}Modifiers of MAPT{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>Post-Translational Modifiers of MAPT ({{ rows|length }})</h1>
+
+        {% if request.args.get('require_residue') == 'True' %}
+            <a href="{{ url_for('tau_modifiers', require_residue=True) }}">Require residues.</a>
+        {% else %}
+            <a href="{{ url_for('tau_modifiers', require_residue=False) }}">Allow missing residues.</a>
+        {% endif %}
+
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>Namespace</th>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Polarity</th>
+                <th>Mod</th>
+                <th>Residue</th>
+                <th>Position</th>
+                <th>Reference</th>
+                <th>Evidence</th>
+                <td>Automatic</td>
+            </tr>
+            </thead>
+            <tbody>
+            {% for ns, name, contact, polarity, mod, res, pos, ref_type, ref, evidence, automatic in rows %}
+                <tr>
+                    <td>{{ ns }}</td>
+                    <td>{{ name }}</td>
+                    <td>
+                        <span class="glyphicon glyphicon-{{ 'ok-circle' if contact else 'remove-circle' }}"
+                              aria-hidden="true"></span>
+                    </td>
+                    <td>
+                        <span class="glyphicon glyphicon-arrow-{{ 'up' if polarity else 'down' }}"
+                              aria-hidden="true"></span>
+                    </td>
+                    <td>{{ mod }}</td>
+                    <td>{{ res or '' }}</td>
+                    <td>{{ pos or '' }}</td>
+                    <td>
+                        {% if ref_type == 'PubMed' %}
+                            <a href="https://www.ncbi.nlm.nih.gov/pubmed/{{ ref }}">pmid:{{ ref }}</a>
+                        {% elif ref_type == 'PubMed Central' %}
+                            <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/{{ ref }}">pmc:{{ ref }}</a>
+                        {% else %}
+                            {{ ref_type }}:{{ ref }}
+                        {% endif %}
+                    </td>
+                    <td>{{ evidence }}</td>
+                    <td>
+                        <span class="glyphicon glyphicon-{{ 'ok-circle' if automatic else 'remove-circle' }}"
+                              aria-hidden="true"></span>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "bootstrap/base.html" %}
+
+{% import "bootstrap/wtf.html" as wtf %}
+{% import "bootstrap/fixes.html" as fixes %}
+{% import "bootstrap/utils.html" as util %}
+
+{% block title %}Tau Aggregation Inhibitors{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>Tau Aggregation Inhibitors ({{ rows|length }})</h1>
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>Namespace</th>
+                <th>Name</th>
+                <th>Target</th>
+                <th>Reference</th>
+                <th>Evidence</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for ns, name, target, ref_type, ref, evidence in rows %}
+                <tr>
+                    <td>{{ ns }}</td>
+                    <td>{{ name }}</td>
+                    <td>{{ target }}</td>
+                    <td>
+                        {% if ref_type == 'PubMed' %}
+                            <a href="https://www.ncbi.nlm.nih.gov/pubmed/{{ ref }}">pmid:{{ ref }}</a>
+                        {% elif ref_type == 'PubMed Central' %}
+                            <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/{{ ref }}">pmc:{{ ref }}</a>
+                        {% else %}
+                            {{ ref_type }}:{{ ref }}
+                        {% endif %}
+                    </td>
+                    <td>{{ evidence }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

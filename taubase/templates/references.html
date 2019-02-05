@@ -1,0 +1,27 @@
+{% extends "bootstrap/base.html" %}
+
+{% import "bootstrap/wtf.html" as wtf %}
+{% import "bootstrap/fixes.html" as fixes %}
+{% import "bootstrap/utils.html" as util %}
+
+{% block title %}References Containing MAPT{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>References Containing MAPT ({{ rows|length }})</h1>
+
+        <ul class="row">
+            {% for ref_type, ref in rows %}
+                <li class="col-xs-3">
+                    {% if ref_type == 'PubMed' %}
+                        <a href="https://www.ncbi.nlm.nih.gov/pubmed/{{ ref }}">pmid:{{ ref }}</a>
+                    {% elif ref_type == 'PubMed Central' %}
+                        <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/{{ ref }}">pmc:{{ ref }}</a>
+                    {% else %}
+                        {{ ref_type }}:{{ ref }}
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

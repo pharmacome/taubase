@@ -1,0 +1,85 @@
+{% extends "bootstrap/base.html" %}
+
+{% import "bootstrap/wtf.html" as wtf %}
+{% import "bootstrap/fixes.html" as fixes %}
+{% import "bootstrap/utils.html" as util %}
+
+{% block title %}TauBase{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>TauBase </h1>
+
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <dl class="dl-horizontal">
+                    {% for key, value in summary.items() %}
+
+                        <dt>{{ key }}</dt>
+                        <dd>{{ value }}</dd>
+
+                    {% endfor %}
+                </dl>
+            </div>
+        </div>
+
+
+        <div class="panel panel-default">
+            <div class="list-group">
+                <a class="list-group-item" href="{{ url_for('tau_references') }}">
+                    <h4 class="list-group-item-heading">
+                        References
+                    </h4>
+                    <p class="list-group-item-text">
+                        A listing of all articles mentioning the Tau protein in TauBase
+                    </p>
+                </a>
+
+                <a class="list-group-item" href="{{ url_for('tau_variants') }}">
+                    <h4 class="list-group-item-heading">
+                        Variants
+                    </h4>
+                    <p class="list-group-item-text">
+                        A listing of all HGVS variants of the Tau protein
+                    </p>
+                </a>
+
+                <a class="list-group-item" href="{{ url_for('tau_mutations') }}">
+                    <h4 class="list-group-item-heading">
+                        Mutants
+                    </h4>
+                    <p class="list-group-item-text">
+                        A listing of all HGVS variants of the gene encoding the Tau protein
+                    </p>
+                </a>
+
+                <a class="list-group-item" href="{{ url_for('tau_fragments') }}">
+                    <h4 class="list-group-item-heading">
+                        Fragments
+                    </h4>
+                    <p class="list-group-item-text">
+                        A listing of all fragments of the Tau protein
+                    </p>
+                </a>
+
+                <a class="list-group-item" href="{{ url_for('tau_modifiers') }}">
+                    <h4 class="list-group-item-heading">
+                        Post-Translational Modifiers
+                    </h4>
+                    <p class="list-group-item-text">
+                        A listing of all proteins that post-translationally modify the Tau protein
+                    </p>
+                </a>
+
+                <a class="list-group-item" href="{{ url_for('tau_aggregation_inhibitors') }}">
+                    <h4 class="list-group-item-heading">
+                        Tau Aggregation Inhibitors
+                    </h4>
+                    <p class="list-group-item-text">
+                        A listing of all chemicals that inhibit the aggregation of the Tau protein
+                    </p>
+                </a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
