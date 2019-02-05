@@ -14,7 +14,7 @@ from pybel.constants import (
     DIRECT_CAUSAL_RELATIONS, EFFECT, EVIDENCE, IDENTIFIER, LINE, MODIFIER, NAME, PMOD_CODE, PMOD_POSITION, RELATION,
     SUBJECT,
 )
-from pybel.dsl import Fragment, Gene, Hgvs, Protein, ProteinModification
+from pybel.dsl import BaseEntity, Fragment, Gene, Hgvs, Protein, ProteinModification
 
 
 def get_modifiers(graph: BELGraph, hgnc_gene_symbol: str, only_direct: bool = False) -> pd.DataFrame:
@@ -179,7 +179,7 @@ def get_fragments_rows(graph: BELGraph, hgnc_gene_symbol: str) -> Iterable[Tuple
         )
 
 
-def is_hgnc_protein(node, hgnc_gene_symbol) -> bool:
+def is_hgnc_protein(node: BaseEntity, hgnc_gene_symbol) -> bool:
     return isinstance(node, Protein) and node.namespace.lower() == 'hgnc' and node.name == hgnc_gene_symbol
 
 
@@ -261,3 +261,18 @@ def get_tau_aggregation_modifiers_rows(
             data[CITATION][CITATION_REFERENCE],
             data[EVIDENCE],
         )
+
+
+def get_edges(
+        graph: BELGraph,
+        hgnc_gene_symbol: str = 'MAPT',
+) -> Iterable[Tuple[str, str, str]]:
+    for source, target, data in graph.edges(data=True):
+        if CITATION not in data:
+            continue
+        if is_hgnc_protein(source, hgnc_gene_symbol) or is_hgnc_protein(target, hgnc_gene_symbol):
+            yield (
+                graph.edge_to_bel(source, target, data, sep=' '),
+                data[CITATION][CITATION_TYPE],
+                data[CITATION][CITATION_REFERENCE]
+            )

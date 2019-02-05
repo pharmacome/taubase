@@ -8,8 +8,13 @@ import click
 
 
 @click.command()
+def main():
+    """TauBase."""
+
+
+@main.command()
 @click.option('-v', '--verbose', is_flag=True)
-def main(verbose):
+def run(verbose: bool):
     """Run the TauBase web application."""
     if verbose:
         logging.basicConfig(level=logging.INFO)

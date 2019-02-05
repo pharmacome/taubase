@@ -1,18 +1,38 @@
 # -*- coding: utf-8 -*-
 
 """Run TauBase."""
+import logging
+import os
+import sys
 
+import neurommsig_knowledge
 import pandas as pd
 from flask import Flask, jsonify, render_template, request
 from flask_bootstrap import Bootstrap
 
-from hbp_knowledge import get_graph
+import hbp_knowledge
+from pybel import union
 from taubase.getters import (
     _get_protein_modifiers_rows, get_fragments_rows, get_kinases, get_mutations_rows,
-    get_tau_aggregation_modifiers_rows, get_tau_modifiers, get_tau_references, get_variants_rows,
+    get_tau_aggregation_modifiers_rows, get_tau_modifiers, get_tau_references, get_variants_rows, get_edges
 )
 
-graph = get_graph()
+logger = logging.getLogger(__name__)
+
+logger.info('getting HBP')
+hbp_graph = hbp_knowledge.get_graph()
+
+logger.info('getting NeuroMMSig')
+neurommsig_graph = neurommsig_knowledge.repository.get_graph()
+
+logger.info('getting HBP Enrichment')
+sys.path.append(os.path.join(os.path.expanduser('~'), 'dev', 'hbp-results'))
+import hbp_results
+
+enrichment_graph = hbp_results.sheets_repository.get_graph()
+
+logger.info('joining graphs')
+graph = union([hbp_graph, neurommsig_graph, enrichment_graph])
 
 app = Flask(__name__)
 Bootstrap(app)
@@ -56,7 +76,7 @@ def tau_modifiers():
 
 
 def _bool_str(x: str):
-    return x == 'True'
+    return x.lower() == 'true'
 
 
 @app.route('/variants')
@@ -91,6 +111,11 @@ def tau_fragments():
 
     return render_template('fragments.html', rows=rows)
 
+
+@app.route('/edges')
+def edges():
+    """Show the edges with the Tau protein."""
+    return render_template('edges.html', rows=list(get_edges(graph, _get_hgnc_gene_symbol())))
 
 @app.route('/aggregation/inhibitors')
 def tau_aggregation_inhibitors():
