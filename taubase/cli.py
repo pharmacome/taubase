@@ -7,7 +7,7 @@ import logging
 import click
 
 
-@click.command()
+@click.group()
 def main():
     """TauBase."""
 

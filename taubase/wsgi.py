@@ -5,16 +5,16 @@ import logging
 import os
 import sys
 
-import neurommsig_knowledge
 import pandas as pd
 from flask import Flask, jsonify, render_template, request
 from flask_bootstrap import Bootstrap
 
 import hbp_knowledge
-from pybel import union
+import neurommsig_knowledge
+from bel_enrichment import BELSheetsRepository
 from taubase.getters import (
-    _get_protein_modifiers_rows, get_fragments_rows, get_kinases, get_mutations_rows,
-    get_tau_aggregation_modifiers_rows, get_tau_modifiers, get_tau_references, get_variants_rows, get_edges
+    _get_protein_modifiers_rows, get_edges, get_fragments_rows, get_kinases, get_mutations_rows,
+    get_tau_aggregation_modifiers_rows, get_tau_modifiers, get_tau_references, get_variants_rows,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,14 +25,24 @@ hbp_graph = hbp_knowledge.get_graph()
 logger.info('getting NeuroMMSig')
 neurommsig_graph = neurommsig_knowledge.repository.get_graph()
 
-logger.info('getting HBP Enrichment')
-sys.path.append(os.path.join(os.path.expanduser('~'), 'dev', 'hbp-results'))
-import hbp_results
+graph = hbp_graph + neurommsig_graph
 
-enrichment_graph = hbp_results.sheets_repository.get_graph()
+hbp_rational_enrichment_directory = os.path.join(os.path.expanduser('~'), 'dev', 'hbp-results')
+if os.path.exists(hbp_rational_enrichment_directory):
+    sys.path.append(hbp_rational_enrichment_directory)
+    try:
+        import hbp_results
+    except ImportError:
+        logger.info('not found HBP Enrichment')
+        hbp_results = None
+    else:
+        logger.info('getting HBP Enrichment')
+        graph += hbp_results.sheets_repository.get_graph()
 
-logger.info('joining graphs')
-graph = union([hbp_graph, neurommsig_graph, enrichment_graph])
+hbp_tau_curation_directory = os.path.join(os.path.expanduser('~'), 'dev', 'hbp', 'curation', 'indra')
+if os.path.exists(hbp_tau_curation_directory):
+    tau_curation_repository = BELSheetsRepository(hbp_tau_curation_directory)
+    graph += tau_curation_repository.get_graph()
 
 app = Flask(__name__)
 Bootstrap(app)
@@ -116,6 +126,7 @@ def tau_fragments():
 def edges():
     """Show the edges with the Tau protein."""
     return render_template('edges.html', rows=list(get_edges(graph, _get_hgnc_gene_symbol())))
+
 
 @app.route('/aggregation/inhibitors')
 def tau_aggregation_inhibitors():
