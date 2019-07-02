@@ -14,7 +14,7 @@ def main():
 
 @main.command()
 @click.option('-v', '--verbose', is_flag=True)
-def run(verbose: bool):
+def web(verbose: bool):
     """Run the TauBase web application."""
     if verbose:
         logging.basicConfig(level=logging.INFO)

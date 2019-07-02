@@ -2,7 +2,7 @@
 
 """Run TauBase."""
 
-from taubase.cli import main
+from src.taubase.cli import main
 
 if __name__ == '__main__':
     main()
