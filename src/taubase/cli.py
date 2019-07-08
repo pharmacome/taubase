@@ -13,8 +13,10 @@ def main():
 
 
 @main.command()
+@click.option('--host', type=str, default='0.0.0.0', help='Flask host.', show_default=True)
+@click.option('--port', type=int, default=5000, help='Flask port.', show_default=True)
 @click.option('-v', '--verbose', is_flag=True)
-def web(verbose: bool):
+def web(host: str, port: int, verbose: bool):
     """Run the TauBase web application."""
     if verbose:
         logging.basicConfig(level=logging.INFO)
@@ -22,7 +24,7 @@ def web(verbose: bool):
         logging.getLogger('hbp').setLevel(logging.INFO)
 
     from taubase.wsgi import app
-    app.run()
+    app.run(host=host, port=port)
 
 
 if __name__ == '__main__':
