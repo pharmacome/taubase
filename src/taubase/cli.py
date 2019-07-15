@@ -23,7 +23,7 @@ def web(host: str, port: int, verbose: bool):
         logging.getLogger('pybel').setLevel(logging.INFO)
         logging.getLogger('hbp').setLevel(logging.INFO)
 
-    from taubase.wsgi import app
+    from .wsgi import app
     app.run(host=host, port=port)
 
 

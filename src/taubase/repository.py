@@ -5,16 +5,20 @@
 import logging
 import os
 import pickle
+from typing import List, Union
 
-import epilepsy_knowledge
 import hbp_enrichment
 import hbp_knowledge
 import hbp_semi_automated_curation
 import pybel
+from bel_enrichment import BELSheetsRepository
+from bel_repository import BELMetadata, BELRepository
+from bel_repository.utils import serialize_authors
 from pybel import BELGraph, union
-from pybel_cx import to_cx_file
 
 __all__ = [
+    'DistributedRepo',
+    'repo',
     'get_graph',
 ]
 
@@ -23,56 +27,117 @@ logger = logging.getLogger(__name__)
 HERE = os.path.abspath(os.path.dirname(__file__))
 DATA_DIRECTORY = os.path.abspath(os.path.join(HERE, os.pardir, os.pardir, 'data'))
 
-PICKLE_PATH = os.path.join(DATA_DIRECTORY, 'taubase.bel.pickle')
-NODELINK_PATH = os.path.join(DATA_DIRECTORY, 'taubase.bel.nodelink.json')
-CX_PATH = os.path.join(DATA_DIRECTORY, 'taubase.bel.cx.json')
-SIF_PATH = os.path.join(DATA_DIRECTORY, 'taubase.bel.sif')
-GRAPHML_PATH = os.path.join(DATA_DIRECTORY, 'taubase.bel.graphml')
-GSEA_PATH = os.path.join(DATA_DIRECTORY, 'taubase.bel.gmt')
-INDRA_PATH = os.path.join(DATA_DIRECTORY, 'taubase.indra.pickle')
+
+class DistributedRepo:
+    def __init__(
+            self,
+            *,
+            name,
+            repositories: List[Union[BELRepository, BELSheetsRepository]],
+            cache_dir,
+    ) -> None:
+        self.name = name
+        self.repositories = repositories
+
+        for r in self.repositories:
+            if not hasattr(r, 'metadata'):
+                raise TypeError(f'Missing metadata: {r}')
 
 
-def get_graph() -> BELGraph:
-    """Get the graph from all sources."""
-    if os.path.exists(PICKLE_PATH):
-        return pybel.from_pickle(PICKLE_PATH)
+        #
+        self.version = '/'.join(
+            repository.metadata.version
+            for repository in self.repositories
+        )
+        self.authors = serialize_authors({
+            author.strip()
+            for repository in self.repositories
+            for author in repository.metadata.authors.split(',')
+        })
+        self.description = """A distributed repository of several repositories: {}""".format(
+            f'{repository.metadata.name} v{repository.metadata.version}' for repository in self.repositories
+        )
+        self.metadata = BELMetadata(
+            name=self.name,
+            version=self.version,
+            authors=self.authors,
+            description=self.description,
+        )
+        self.cache_dir = cache_dir
 
-    graphs = []
+    def get_graphs(self, use_tqdm: bool = True):
+        return [
+            repository.get_graph(use_tqdm=use_tqdm)
+            for repository in self.repositories
+        ]
 
-    logger.info('getting pharmacome/knowledge')
-    hbp_graph = hbp_knowledge.get_graph(use_tqdm=True)
-    graphs.append(hbp_graph)
+    def get_graph(self, use_cached: bool = True) -> BELGraph:
+        """Get the graph from all sources."""
+        pickle_path = os.path.join(self.cache_dir, 'taubase.bel.pickle')
+        if use_cached and os.path.exists(pickle_path):
+            return pybel.from_pickle(pickle_path)
 
-    logger.info('getting pharmacome/semi-automated-curation')
-    hbp_semi_automated_graph = hbp_semi_automated_curation.repository.get_graph(use_tqdm=True)
-    graphs.append(hbp_semi_automated_graph)
+        rv = union(self.get_graphs())
+        self.metadata.update(rv)
 
-    logger.info('getting bel-enrichment/results')
-    hbp_enrichment_graph = hbp_enrichment.repository.get_graph(use_tqdm=True)
-    graphs.append(hbp_enrichment_graph)
+        nodelink_path = os.path.join(self.cache_dir, f'{self.name}.bel.nodelink.json')
+        cx_path = os.path.join(self.cache_dir, f'{self.name}.bel.cx.json')
+        sif_path = os.path.join(self.cache_dir, f'{self.name}.bel.sif')
+        graphml_path = os.path.join(self.cache_dir, f'{self.name}.bel.graphml')
+        gsea_path = os.path.join(self.cache_dir, f'{self.name}.bel.gmt')
+        indra_path = os.path.join(self.cache_dir, f'{self.name}.indra.pickle')
+        html_path = os.path.join(self.cache_dir, 'index.html')
 
-    rv = union(graphs)
+        pybel.to_pickle(rv, pickle_path)
+        pybel.to_json_path(rv, nodelink_path)
+        pybel.to_sif_path(rv, sif_path)
+        pybel.to_gsea_path(rv, gsea_path)
+        pybel.to_graphml(rv, graphml_path)
 
-    pybel.to_pickle(rv, PICKLE_PATH)
-    pybel.to_json_path(rv, NODELINK_PATH)
-    with open(CX_PATH, 'w') as file:
-        to_cx_file(rv, file)
-    pybel.to_sif_path(rv, SIF_PATH)
-    pybel.to_gsea_path(rv, GSEA_PATH)
-    pybel.to_graphml(rv, GRAPHML_PATH)
-    try:
-        statements = pybel.to_indra_statements(rv)
-    except ImportError:
-        pass
-    else:
-        with open(INDRA_PATH, 'wb') as file:
-            pickle.dump(statements, file)
+        try:
+            statements = pybel.to_indra_statements(rv)
+        except ImportError:
+            pass
+        else:
+            with open(indra_path, 'wb') as file:
+                pickle.dump(statements, file)
 
-    return rv
+        try:
+            from pybel_cx import to_cx_file
+        except ImportError:
+            pass
+        else:
+            with open(cx_path, 'w') as file:
+                to_cx_file(rv, file)
+
+        try:
+            from pybel_tools.assembler.html import to_html
+        except ImportError:
+            pass
+        else:
+            with open(html_path, 'w') as file:
+                print(to_html(rv), file=file)
+
+        return rv
+
+
+repo = DistributedRepo(
+    name='TauBase',
+    repositories=[
+        hbp_knowledge.repository,
+        hbp_semi_automated_curation.repository,
+        hbp_enrichment.repository,
+    ],
+    cache_dir=DATA_DIRECTORY,
+)
+
+get_graph = repo.get_graph
 
 
 def get_neurommsig_graph():
     graphs = []
+
+    import epilepsy_knowledge
     logger.info('getting neurommsig-epilepsy/knowledge')
     neurommsig_epilepsy_graph = epilepsy_knowledge.repository.get_graph()
     graphs.append(neurommsig_epilepsy_graph)
